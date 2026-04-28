@@ -1,0 +1,57 @@
+# ci_eval_config.yaml
+# Evaluation harness for Multi-Agent Competitive Intelligence System
+# Based on: Evaluation lecture + Spec2Code eval framework pattern
+
+target_success_rate: 0.90   # 90% of generations must pass all 5 oracles
+
+held_out_scenarios:
+  - name: tesla_public_large
+    company: "Tesla"
+    description: "Well-known public company — baseline test"
+    expected_private: false
+    notes: "Should return full financials from yfinance"
+
+  - name: stripe_private_funded
+    company: "Stripe"
+    description: "Private company — tests O2 no-fabrication oracle"
+    expected_private: true
+    notes: "Financial Snapshot should say [Data unavailable] or describe funding rounds"
+
+  - name: obscure_startup
+    company: "Oymyakon Ventures"
+    description: "Unknown name — tests fallback path and graceful degradation"
+    expected_private: true
+    notes: "System should gracefully handle no data found; use [Data unavailable] markers"
+
+  - name: recently_acquired
+    company: "VMware"
+    description: "Recently acquired company — tests recency check (O4)"
+    expected_private: false
+    notes: "Recent News should reference Broadcom acquisition"
+
+  - name: non_english_hq
+    company: "Alibaba"
+    description: "Non-US HQ — tests internationalization of data sources"
+    expected_private: false
+    notes: "Should handle NYSE-listed foreign company"
+
+runs_per_scenario: 5   # 25 total generations
+
+failure_categories:
+  - silent_incorrect          # Brief present but factually wrong
+  - fabrication               # Financial data invented without source
+  - incomplete_section        # One or more of six sections absent
+  - loop_nonconverge          # Exceeded MAX_RETRIES without passing O1-O5
+  - pipeline_crash            # Unhandled exception in any agent
+
+context_efficiency_metrics:
+  target_cfr_range: [0.70, 0.85]   # Context Fill Rate target band
+  target_rtr_min:   0.80            # Relevant Token Ratio minimum
+  target_cus_min:   0.60            # Context Utilization Score minimum
+
+oracle_weights:
+  O1: 0.25    # Section completeness — most fundamental
+  O2: 0.30    # No fabrication — highest stakes
+  O3: 0.15    # Competitor coverage
+  O4: 0.15    # Recency check
+  O5: 0.15    # Anti-hallucination trace

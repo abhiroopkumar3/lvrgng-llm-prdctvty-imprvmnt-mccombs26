@@ -137,7 +137,7 @@ Open `.env` in any text editor and fill in:
 
 ```env
 OPENAI_API_KEY=your-openai-key-here
-ANTHROPIC_API_KEY=your-anthropic-key-here       
+ANTHROPIC_API_KEY=your-anthropic-key-here                              # Optional — leave blank if using OpenAI only
 TAVILY_API_KEY=tvly-your-tavily-key-here        # Recommended — free at tavily.com
 ```
 
@@ -146,17 +146,17 @@ TAVILY_API_KEY=tvly-your-tavily-key-here        # Recommended — free at tavily
 | Key | Where to get it | Required? | Cost |
 |-----|----------------|-----------|------|
 | `OPENAI_API_KEY` | platform.openai.com → API Keys | **Yes** | ~$0.04/run |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys | **Yes** | ~$0.02/run |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys | No | ~$0.02/run (better prose) |
 | `TAVILY_API_KEY` | tavily.com → Dashboard | Recommended | Free (1,000/month) |
 
-> **Single API key:** If you do not have an OpenAI/Anthropic key, open `config.py` and change:
+> **OpenAI only:** If you do not have an Anthropic key, open `config.py` and change:
 >
 > ```python
-> WRITER_MODEL    = ""        # gpt-4o-mini / claude-sonnet
-> SYNTHESIS_MODEL = ""        # gpt-4o-mini / claude-sonnet
+> WRITER_MODEL    = "gpt-4o-mini"
+> SYNTHESIS_MODEL = "gpt-4o-mini"
 > ```
 >
-> The system will then use the model entered for all agents.
+> The system will then use GPT-4o-mini for all agents.
 
 > **No Tavily key:** The system automatically falls back to DuckDuckGo (no key needed). Research quality is slightly lower but the pipeline runs identically.
 
@@ -204,7 +204,7 @@ The system handles failures gracefully at every layer:
 
 ---
 
-## Running the Eval Harness
+## Running the Eval Harness (Optional)
 
 ```bash
 # Dry run — tests harness logic only, no API calls
@@ -240,7 +240,7 @@ Results saved to `eval/eval_report_{timestamp}.md`.
 
 ---
 
-## Troubleshooting Tips
+## Troubleshooting
 
 **`ModuleNotFoundError` on startup:**
 You are not in the correct conda environment. Run `conda activate multi_agent_ci` first.
@@ -270,15 +270,3 @@ conda activate multi_agent_ci
 cd "path/to/multi_agent_ci"
 python main.py
 ```
-
----
-
-## Server and Environment Shutdown
-
-- Press `Ctrl+C` in the terminal where the server is running. You may need to press it twice.
-
-- To deactivate the python environment:
-
-    ```bash
-        conda deactivate
-    ```

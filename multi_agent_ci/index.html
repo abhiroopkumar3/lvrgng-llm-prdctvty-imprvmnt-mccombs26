@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Agent Competitive Intelligence Company Brief</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0f1117; --surface: #1a1d27; --surface2: #22263a;
+      --border:  #2e3350; --accent:  #5b6af0;  --text:    #e2e4ef;
+      --muted:   #7b80a0; --success: #2ecc71;  --warn:    #f39c12;
+      --danger:  #e74c3c; --info:    #3498db;  --radius:  10px;
+    }
+    html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+    .app{display:grid;grid-template-columns:1fr 320px;grid-template-rows:52px 1fr;height:100vh;}
+
+    /* header */
+    .header{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border);}
+    .header h1{font-size:15px;font-weight:700;}
+    .status-pill{margin-left:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+
+    /* progress */
+    .progress-bar{padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:3px;flex-shrink:0;overflow-x:auto;}
+    .step{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);white-space:nowrap;}
+    .step .dot{width:20px;height:20px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .3s;}
+    .step.active .dot{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 8px rgba(91,106,240,.4);}
+    .step.done .dot{background:var(--success);border-color:var(--success);color:#fff;}
+    .step.active .label{color:var(--text);font-weight:600;}
+    .step-arrow{color:var(--border);font-size:10px;margin:0 1px;}
+
+    /* main */
+    .main-panel{display:flex;flex-direction:column;overflow:hidden;}
+    .chat-history{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:14px;}
+    .chat-history::-webkit-scrollbar{width:5px;}
+    .chat-history::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+    /* session card */
+    .session-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);}
+    .session-header{padding:9px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .company-name{font-weight:700;font-size:14px;color:var(--accent);}
+    .session-meta{font-size:11px;color:var(--muted);}
+    .session-messages{padding:10px 14px;display:flex;flex-direction:column;gap:7px;}
+
+    /* messages */
+    .msg{padding:9px 13px;border-radius:var(--radius);line-height:1.55;font-size:13px;}
+    .msg.sys{background:var(--surface2);color:var(--muted);text-align:center;font-size:12px;}
+    .msg.step-msg{background:var(--surface2);border-left:3px solid var(--info);color:var(--muted);}
+    .msg.done-msg{background:var(--surface2);border-left:3px solid var(--success);color:var(--success);}
+    .msg.warn-msg{background:rgba(243,156,18,.08);border-left:3px solid var(--warn);color:var(--warn);}
+    .msg.err-msg{background:rgba(231,76,60,.08);border-left:3px solid var(--danger);color:var(--danger);}
+
+    /* brief card */
+    .brief-card{background:var(--bg);border:1px solid var(--accent);border-radius:var(--radius);padding:16px;margin-top:4px;}
+    .brief-content h1{font-size:18px;color:var(--accent);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+    .brief-content h2{font-size:14px;color:var(--text);margin:16px 0 6px;font-weight:700;}
+    .brief-content h3{font-size:13px;color:var(--muted);margin:10px 0 4px;}
+    .brief-content p{color:#c8cce0;margin-bottom:7px;line-height:1.65;}
+    .brief-content ul{margin:6px 0 10px 18px;}
+    .brief-content li{color:#c8cce0;margin-bottom:5px;line-height:1.55;}
+    .brief-content hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
+    .brief-content strong{color:var(--text);}
+    .brief-content .notice{background:rgba(243,156,18,.08);border-left:3px solid var(--warn);padding:8px 12px;border-radius:4px;color:var(--warn);font-size:12px;margin-top:10px;}
+    .brief-footer{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .brief-meta{font-size:11px;color:var(--muted);}
+    .btn-dl{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;transition:filter .2s;}
+    .btn-dl:hover{filter:brightness(1.15);}
+
+    /* input */
+    .input-area{padding:10px 14px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+    .input-row{display:flex;gap:8px;}
+    .input-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;}
+    .input-row input:focus{border-color:var(--accent);}
+    .input-row input::placeholder{color:var(--muted);}
+    .btn-go{padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;}
+    .btn-go:disabled{opacity:.4;cursor:not-allowed;}
+    .hint{font-size:11px;color:var(--muted);margin-top:5px;}
+
+    /* log */
+    .log-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+    .log-hdr{padding:10px 13px;font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+    .log-body{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px;}
+    .log-body::-webkit-scrollbar{width:4px;}
+    .log-body::-webkit-scrollbar-thumb{background:var(--border);}
+    .le{padding:4px 8px;border-radius:5px;font-size:11px;font-family:'Consolas',monospace;line-height:1.4;border-left:2px solid transparent;}
+    .le.s{border-left-color:var(--success);color:#98e8b5;background:rgba(46,204,113,.06);}
+    .le.w{border-left-color:var(--warn);color:#f8c471;background:rgba(243,156,18,.06);}
+    .le.e{border-left-color:var(--danger);color:#f1948a;background:rgba(231,76,60,.06);}
+    .le.r{border-left-color:var(--info);color:#85c1e9;background:rgba(52,152,219,.06);}
+    .le.d{border-left-color:var(--border);color:var(--muted);}
+    .lts{opacity:.5;font-size:10px;margin-right:4px;}
+
+    .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .sep{text-align:center;font-size:11px;color:var(--border);padding:2px 0;}
+  
+    /* scroll/layout fixes */
+    .main-panel{min-height:0;}
+    .chat-history{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px;}
+    .session-card{flex-shrink:0;}
+    .brief-card{
+      max-height:420px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .brief-content{
+      overflow-y:auto;
+      max-height:330px;
+      padding-right:8px;
+    }
+    .brief-content::-webkit-scrollbar{width:5px;}
+    .brief-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+    .brief-footer{flex-shrink:0;}
+
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b6af0" stroke-width="2">
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/>
+    </svg>
+    <h1>Multi-Agent Competitive Intelligence Company Brief</h1>
+    <div class="status-pill" id="status-pill">Ready</div>
+  </header>
+
+  <main class="main-panel">
+    <div class="progress-bar">
+      <div class="step" id="s0"><div class="dot">1</div><span class="label">Intake</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s1"><div class="dot">2</div><span class="label">Planning</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s2"><div class="dot">3</div><span class="label">Research</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s3"><div class="dot">4</div><span class="label">Synthesis</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s4"><div class="dot">5</div><span class="label">Review</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s5"><div class="dot">6</div><span class="label">Writing</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s6"><div class="dot">7</div><span class="label">Validation</span></div><span class="step-arrow">›</span>
+      <div class="step" id="s7"><div class="dot">✓</div><span class="label">Complete</span></div>
+    </div>
+
+    <div class="chat-history" id="history">
+      <div class="msg sys">Enter a company name to generate a Competitive Intelligence Brief.</div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <input id="inp" type="text" placeholder="Enter company name (e.g., Tesla, Snowflake, Stripe)" maxlength="100" autocomplete="off" />
+        <button class="btn-go" id="go-btn" onclick="go()">Generate Brief</button>
+      </div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </main>
+
+  <aside class="log-panel">
+    <div class="log-hdr">
+      <span>Pipeline Log</span>
+      <button onclick="clearPipelineLog()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:5px;font-size:10px;cursor:pointer">Clear</button>
+    </div>
+    <div class="log-body" id="log-body"><div class="le d">Awaiting pipeline start...</div></div>
+  </aside>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const MAX_SESSIONS = 3;
+const STEP_IDS = ['s0','s1','s2','s3','s4','s5','s6','s7'];
+
+const STEP_LABELS = [
+  'Intake',
+  'Planning...',
+  'Researching...',
+  'Synthesizing...',
+  'Reviewing...',
+  'Writing...',
+  'Validating...',
+  'Complete'
+];
+
+const AGENTS = {
+  'planner': {
+    step: 1,
+    start: '📋 Planner Agent decomposing task...',
+    complete: '📋 Planner Agent: task decomposed✓'
+  },
+  'web_search': {
+    step: 2,
+    start: '🌐 Web Search Agent: searching...',
+    complete: '🌐 Web Search Agent: found results✓'
+  },
+  'financial': {
+    step: 2,
+    start: '💰 Financial Agent: fetching data...',
+    complete: '💰 Financial Agent: financial data retrieved✓'
+  },
+  'synthesis': {
+    step: 3,
+    start: '🔗 Synthesis Agent: merging research...',
+    complete: '🔗 Synthesis Agent: merged research✓'
+  },
+  'human_validator': {
+    step: 4,
+    start: '👤 Human Validator: reviewing...',
+    complete: '👤 Human Validator: auto-accepted✓'
+  },
+  'writer': {
+    step: 5,
+    start: '✍️ Writer Agent: drafting brief...',
+    complete: '✍️ Writer Agent: draft complete✓'
+  },
+  'data_validator': {
+    step: 6,
+    start: '🔎 Data Validator: checking completeness...',
+    complete: '🔎 Data Validator: validation completed✓'
+  },
+  'structure_validator': {
+    step: 6,
+    start: '📐 Structure Validator: checking format...',
+    complete: '📐 Structure Validator: format check passed✓'
+  },
+  'retry_agent': {
+    step: 6,
+    start: '✓ Quality gate: running...',
+    complete: '✓ Quality gate: passed✓'
+  },
+  'audit_log': {
+    step: 6,
+    start: '📊 Audit Log Agent: generating report...',
+    complete: '📊 Audit Log Agent: report generated✓'
+  }
+};
+
+const COMPLETION_EVENTS = new Set(['complete', 'pass', 'pass_forced', 'auto_accepted']);
+const START_EVENTS = new Set(['start']);
+
+// ── State ──────────────────────────────────────────────────────────────────
+let sessions = [];
+let cur = null;
+let pollTimer = null;
+let lastAuditLen = 0;
+
+// ── Entry point ────────────────────────────────────────────────────────────
+async function go() {
+  const inp = document.getElementById('inp');
+  const company = inp.value.trim();
+  if (!company) { inp.focus(); return; }
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+
+  inp.value = '';
+  lastAuditLen = 0;
+  resetSteps();
+  setStatus('Starting...', true);
+  setEnabled(false);
+
+  cur = newSession(company);
+  cur.currentStep = 0;
+  cur.pendingCompletions = [];
+
+  try {
+    const r = await fetch('/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ company }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Start failed');
+
+    cur.runId = d.run_id;
+    cur.card.dataset.runId = d.run_id;
+
+    log('r', `Started | run_id: ${d.run_id}`);
+    addMsg(cur, 'done-msg', `✓ Company validated: <strong>${esc(company)}</strong>`);
+    updateBarActive(1);
+    setStatus('Planning...', true);
+
+    startPolling(d.run_id);
+
+  } catch (e) {
+    addMsg(cur, 'err-msg', `❌ ${esc(e.message)}`);
+    setEnabled(true);
+    setStatus('Error');
+  }
+}
+
+// ── Session card ───────────────────────────────────────────────────────────
+function newSession(company) {
+  const hist = document.getElementById('history');
+
+  const ph = hist.querySelector('.msg.sys');
+  if (ph) ph.remove();
+
+  // Once the visible history reaches the session limit, start a fresh batch.
+  // This keeps the next company run clean and clears the right-side pipeline log too.
+  if (sessions.length >= MAX_SESSIONS) {
+    sessions = [];
+    cur = null;
+    hist.innerHTML = '';
+    clearPipelineLog();
+    resetSteps();
+    setStatus('Ready');
+  }
+
+  let sep = null;
+  if (sessions.length > 0) {
+    sep = document.createElement('div');
+    sep.className = 'sep';
+    sep.textContent = '───────────────────────';
+    hist.appendChild(sep);
+  }
+
+  const card = document.createElement('div');
+  card.className = 'session-card';
+  const uid = 'msgs-' + Date.now();
+  card.innerHTML = `
+    <div class="session-header">
+      <span class="company-name">${esc(company)}</span>
+      <span class="session-meta">${new Date().toLocaleTimeString()}</span>
+    </div>
+    <div class="session-messages" id="${uid}"></div>`;
+  hist.appendChild(card);
+
+  const msgsEl = card.querySelector(`#${uid}`);
+  const s = {
+    runId: null,
+    company,
+    card,
+    sep,
+    msgsEl,
+    stagesShown: new Set(),
+    currentStep: 0,
+    pendingCompletions: []
+  };
+
+  sessions.push(s);
+  updateHint();
+  scrollH(true);
+  return s;
+}
+
+function updateHint() {
+  document.getElementById('hint').textContent =
+    sessions.length ? `${sessions.length}/${MAX_SESSIONS} sessions shown.` : '';
+}
+
+function clearPipelineLog() {
+  const body = document.getElementById('log-body');
+  if (body) body.innerHTML = '<div class="le d">Awaiting pipeline start...</div>';
+}
+
+// ── Polling ────────────────────────────────────────────────────────────────
+function startPolling(runId) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => poll(runId), 1000);
+}
+
+async function poll(runId) {
+  try {
+    await checkAuditUpdates(runId);
+
+    const r = await fetch(`/status/${runId}`);
+    if (!r.ok) return;
+    const d = await r.json();
+
+    if (d.completed && d.has_brief) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      await showBrief(runId);
+      return;
+    }
+
+    if (d.completed && !d.has_brief) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      flushPendingCompletions(cur, 99, true);
+      addMsg(cur, 'err-msg', '❌ Pipeline finished but no brief generated. Check terminal.');
+      setEnabled(true);
+      setStatus('Failed');
+    }
+  } catch(e) {
+    log('e', `Poll error: ${e.message}`);
+  }
+}
+
+async function checkAuditUpdates(runId) {
+  try {
+    const r = await fetch(`/audit/${runId}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const entries = d.audit || [];
+
+    if (entries.length <= lastAuditLen) return;
+
+    const newEntries = entries.slice(lastAuditLen);
+    lastAuditLen = entries.length;
+
+    for (const entry of newEntries) {
+      processAuditEntry(entry);
+    }
+  } catch(e) {
+    // Non-critical. Status polling will continue.
+  }
+}
+
+function processAuditEntry(entry) {
+  if (!cur) return;
+
+  const agent = entry.agent;
+  const event = entry.event || '';
+  const disp = AGENTS[agent];
+  if (!disp) return;
+
+  const key = `agent:${agent}:${event}`;
+  if (cur.stagesShown.has(key)) return;
+  cur.stagesShown.add(key);
+
+  if (START_EVENTS.has(event)) {
+    // IMPORTANT:
+    // Previous step is marked complete only when the next step starts.
+    // This keeps terminal execution, chat window, and progress icons aligned.
+    flushPendingCompletions(cur, disp.step, false);
+
+    addMsg(cur, 'step-msg', disp.start);
+    updateBarActive(disp.step);
+    setStatus(STEP_LABELS[disp.step] || 'Running...', true);
+    log('r', `${agent}: start`);
+    return;
+  }
+
+  if (['error', 'fail', 'failed', 'failure'].includes(event)) {
+    addMsg(cur, 'err-msg', `${disp.start.replace('...', '')}: ${esc(entry.message || event)}`);
+    log('e', `${agent}: ${event}`);
+    return;
+  }
+
+  if (COMPLETION_EVENTS.has(event)) {
+    // Hold completion until a later step starts.
+    // This prevents "complete" from appearing while the backend is still inside that step.
+    cur.pendingCompletions.push({
+      agent,
+      step: disp.step,
+      msg: disp.complete,
+      logMsg: `${agent}: ${event}`,
+      cls: 'done-msg'
+    });
+  }
+}
+
+function flushPendingCompletions(sess, nextStep, forceAll=false) {
+  if (!sess || !sess.pendingCompletions) return;
+
+  const stillPending = [];
+
+  for (const item of sess.pendingCompletions) {
+    const shouldFlush = forceAll || item.step < nextStep;
+
+    if (shouldFlush) {
+      const doneKey = `done-shown:${item.agent}:${item.step}:${item.logMsg}`;
+      if (!sess.stagesShown.has(doneKey)) {
+        sess.stagesShown.add(doneKey);
+        addMsg(sess, item.cls || 'done-msg', item.msg);
+        log('s', item.logMsg);
+      }
+    } else {
+      stillPending.push(item);
+    }
+  }
+
+  sess.pendingCompletions = stillPending;
+}
+
+// ── Show brief ─────────────────────────────────────────────────────────────
+async function showBrief(runId) {
+  try {
+    // Run one last audit sync before showing final content
+    await checkAuditUpdates(runId);
+
+    const sess = sessions.find(s => s.card && s.card.dataset.runId === runId) || cur;
+    flushPendingCompletions(sess, 99, true);
+
+    const r = await fetch(`/brief/${runId}`);
+    const d = await r.json();
+    const brief = d.brief || '';
+
+    if (!brief) {
+      addMsg(sess, 'err-msg', '❌ Brief empty. Check terminal.');
+      setEnabled(true);
+      return;
+    }
+
+    addMsg(sess, 'done-msg', '✓ Brief generated successfully');
+
+    const div = document.createElement('div');
+    div.className = 'brief-card';
+    div.innerHTML = `
+      <div class="brief-content">${renderMd(brief)}</div>
+      <div class="brief-footer">
+        <span class="brief-meta">Generated ${new Date().toLocaleTimeString()}</span>
+        <button class="btn-dl" onclick="window.location.href='/download/${runId}'">⬇ Download PDF</button>
+      </div>`;
+    sess.msgsEl.appendChild(div);
+
+    updateBarComplete();
+    log('s', `Brief displayed for ${sess.company}`);
+    setStatus('✓ Brief generated successfully', false);
+    setEnabled(true);
+    scrollH(true);
+
+  } catch(e) {
+    addMsg(cur, 'err-msg', `❌ ${esc(e.message)}`);
+    setEnabled(true);
+  }
+}
+
+// ── Progress bar ───────────────────────────────────────────────────────────
+function resetSteps() {
+  STEP_IDS.forEach(id => setStep2(id, ''));
+}
+function setStep(idx, state) {
+  setStep2(STEP_IDS[idx], state);
+}
+function setStep2(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('active','done');
+  if (state) el.classList.add(state);
+}
+
+function updateBarActive(activeIdx) {
+  for (let i = 0; i < STEP_IDS.length; i++) {
+    if (i < activeIdx) setStep(i, 'done');
+    else if (i === activeIdx) setStep(i, 'active');
+    else setStep(i, '');
+  }
+
+  if (cur) cur.currentStep = activeIdx;
+}
+
+function updateBarComplete() {
+  for (let i = 0; i < STEP_IDS.length; i++) setStep(i, 'done');
+  if (cur) cur.currentStep = 7;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function addMsg(sess, cls, html) {
+  if (!sess || !sess.msgsEl) return;
+  const el = document.createElement('div');
+  el.className = `msg ${cls}`;
+  el.innerHTML = html;
+  sess.msgsEl.appendChild(el);
+  scrollH(false);
+}
+
+function scrollH(forceBottom = false) {
+  const h = document.getElementById('history');
+  if (!h) return;
+
+  const nearBottom = h.scrollHeight - h.scrollTop - h.clientHeight < 140;
+
+  if (forceBottom || nearBottom) {
+    h.scrollTop = h.scrollHeight;
+  }
+}
+
+function log(cls, msg) {
+  const body = document.getElementById('log-body');
+  const el = document.createElement('div');
+  el.className = `le ${cls}`;
+  el.innerHTML = `<span class="lts">${new Date().toLocaleTimeString()}</span>${esc(msg)}`;
+  body.appendChild(el);
+  body.scrollTop = body.scrollHeight;
+}
+
+function setEnabled(v) {
+  document.getElementById('go-btn').disabled = !v;
+  document.getElementById('inp').disabled = !v;
+}
+
+function setStatus(txt, loading=false) {
+  document.getElementById('status-pill').innerHTML =
+    loading ? `<span class="spinner"></span>${esc(txt)}` : esc(txt);
+}
+
+// ── Markdown renderer ──────────────────────────────────────────────────────
+function renderMd(md) {
+  if (!md) return '';
+  let h = esc(md);
+  h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^## (\d+\. .+)$/gm, '<h2>$1</h2>');
+  h = h.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  h = h.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/^---+$/gm, '<hr>');
+  h = h.replace(/(⚠️[^\n]+NOTICE[^\n]+)/g,'<div class="notice">$1</div>');
+  h = h.replace(/^[-*•] (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+  h = h.replace(/\n\n/g, '</p><p>');
+  h = h.replace(/([^>])\n([^<])/g, '$1<br>$2');
+  return '<p>' + h + '</p>';
+}
+
+function esc(s) {
+  if (typeof s !== 'string') return String(s || '');
+  return s
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+document.getElementById('inp').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) go();
+});
+</script>
+</body>
+</html>
